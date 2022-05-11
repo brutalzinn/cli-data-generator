@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "YtD6qxPOn6ydwJ6BxKnml75NYaZlxjKvjjAxGScxjTiFFzM2DkmOyCpDhrN2bKWBxwp5EVwcFfbkTbCiMdx1Xg==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\gedeo\\source\\repos\\DocGenerator\\DocGenerator\\DocGenerator.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\gedeo\\.nuget\\packages\\commandlineparser\\2.8.0\\commandlineparser.2.8.0.nupkg.sha512",
+    "C:\\Users\\gedeo\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
+    "C:\\Users\\gedeo\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
