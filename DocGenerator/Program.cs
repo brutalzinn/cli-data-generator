@@ -6,89 +6,103 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommandLine;
-
+using System.Linq;
+using DocGenerator.Models;
+using DocGenerator.Extension;
 namespace DocGenerator
 {
     internal class Program
     {
-        public class ImageOptions
+      
+        static void Main(string[] args)
         {
-            [Option('i', "img", Required = true, HelpText = "Gerar imagem")]
-            public int ImagesToGenerate { get; set; }
-
-            [Option('b', "base64", Required = false, HelpText = "Gerar JSON base64")]
-            public bool GenerateBase64 { get; set; }
-        }
-
-        public class ImagesBase64
-        {
-            public string Base64 { get; set; }
-            public string Nome { get; set; }
-
-            public ImagesBase64(string base64, string nome)
+            if (System.Diagnostics.Debugger.IsAttached)
             {
-                Base64 = base64;
-                Nome = nome;
+                var text = "--forceCNPJ --status 1,2,3 --base64";
+                args = text.Split();
             }
+
+            Parser.Default.ParseArguments<Commands>(args)
+               .MapResult(
+                 (Commands opts) => RunCommands(opts),
+                 errs => 1);
         }
 
-        static void Main(string[] teste)
+        static Bitmap GenerateBitmap(int width, int height)
         {
-            var text = "--img 10";
-            var args = text.Split();
+            Bitmap bmp = new Bitmap(width, height);
 
-            Parser.Default.ParseArguments<ImageOptions>(args)
-            .WithParsed(RunOptions)
-           .WithNotParsed(HandleParseError);
+            Random rand = new Random();
+
+            int r = rand.Next(0, 255);
+            int g = rand.Next(0, 255);
+            int b = rand.Next(0, 255);
+            int a = rand.Next(0, 255);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    bmp.SetPixel(x, y, Color.FromArgb(a, r, g, b));
+                }
+            }
+            return bmp;
+
         }
-        static void RunOptions(ImageOptions opts)
+
+        static int RunCommands(Commands opts)
         {
+            //não dá pra colocar no modelo de commands ainda.
+            opts.CPFCNPJ = opts.PegarCPFCNPJ();
             int width = 100, height = 100;
-
-            Console.WriteLine($"Imagens para gerar {opts.ImagesToGenerate} {opts.GenerateBase64}");
-
-            List<ImagesBase64> images = new List<ImagesBase64>();
+            List<ImageModel> images = new List<ImageModel>();
+            var statusList = opts.Status?.Split(',').Select(s => Convert.ToInt32(s)).ToList() ?? new List<int>();
 
             for (var i = 1; i <= opts.ImagesToGenerate; i++)
             {
-                Bitmap bmp = new Bitmap(width, height);
-
-                Random rand = new Random();
-
-                int r = rand.Next(0, 255);
-                int g = rand.Next(0, 255);
-                int b = rand.Next(0, 255);
-                int a = rand.Next(0, 255);
-                
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        bmp.SetPixel(x, y, Color.FromArgb(a, r, g, b));
-                    }
-                }
-
+                Bitmap bmp = GenerateBitmap(width, height);
                 if (opts.GenerateBase64)
                 {
                     using (MemoryStream jpegStream = new MemoryStream())
                     {
                         bmp.Save(jpegStream, ImageFormat.Jpeg);
-                        images.Add(new ImagesBase64(Convert.ToBase64String(jpegStream.ToArray()), $"teste_{i}"));
+                        images.Add(new ImageModel(cpfcnpj: opts.CPFCNPJ, Convert.ToBase64String(jpegStream.ToArray()), 1));
                     }
-                    JsonSerializerOptions options = new JsonSerializerOptions();
-                    options.WriteIndented = true; 
-                    options.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
-                    File.WriteAllText("teste.json", JsonSerializer.Serialize(images, options));
                 }
-
                 bmp.Save($"imgs/teste_{i}.jpeg", ImageFormat.Jpeg);
-
             }
+         
+            for (var i = 0; i < statusList.Count; i++)
+            {
+                Bitmap bmp = GenerateBitmap(width, height);
+                if (opts.GenerateBase64)
+                {
+                    using (MemoryStream jpegStream = new MemoryStream())
+                    {
+                        bmp.Save(jpegStream, ImageFormat.Jpeg);
+                        images.Add(new ImageModel(cpfcnpj: opts.CPFCNPJ, Convert.ToBase64String(jpegStream.ToArray()), statusList[i]));
+                    }
+
+                }
+                bmp.Save($"imgs/teste_status_{statusList[i]}.jpeg", ImageFormat.Jpeg);
+            }
+            
+
+            Console.WriteLine(
+            $"Documento: {opts.CPFCNPJ}" + 
+            $"Quantidade: {opts.ImagesToGenerate + statusList.Count}" +
+            $" Base64: {opts.GenerateBase64}");
+            //}
+            JsonSerializerOptions options = new JsonSerializerOptions();
+            options.WriteIndented = true;
+            options.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+            File.WriteAllText("teste.json", JsonSerializer.Serialize(images, options));
+
+
+            return 0;
+            
         }
 
-        static void HandleParseError(IEnumerable<Error> errs)
-        {
-            //handle errors
-        }
+ 
     }
 }
